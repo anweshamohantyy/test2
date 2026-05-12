@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Is Wildfire Season Starting Earlier? | DSC 106</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d0d0f;
+      --surface: #141417;
+      --surface2: #1c1c22;
+      --border: #2a2a35;
+      --smoke: #6b6b80;
+      --text: #e8e6e0;
+      --text-dim: #8a8898;
+      --ember: #ff5c1a;
+      --ember-dim: #7a2a08;
+      --flame: #ffaa33;
+      --ash: #c4c0b8;
+      --green: #3dba7a;
+      --cool: #4fc3f7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 3rem 4rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+    .header-left { flex: 1; }
+    .eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ember);
+      margin-bottom: 0.6rem;
+    }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 6vw, 5.5rem);
+      line-height: 0.92;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+    h1 span { color: var(--ember); }
+    .subtitle {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      max-width: 520px;
+      line-height: 1.65;
+    }
+    .data-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--smoke);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ── DEFINITION BOX ── */
+    .definition-strip {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1.2rem 4rem;
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+    }
+    .def-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      color: var(--ember);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .def-text {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .threshold-control {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-left: auto;
+    }
+    .threshold-control label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--smoke);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .threshold-control input[type=range] {
+      -webkit-appearance: none;
+      width: 120px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+    }
+    .threshold-control input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--ember);
+      cursor: pointer;
+    }
+    #threshold-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--flame);
+      min-width: 1.8rem;
+      text-align: right;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      grid-template-rows: auto auto;
+      min-height: calc(100vh - 220px);
+    }
+
+    /* ── SIDEBAR ── */
+    aside {
+      border-right: 1px solid var(--border);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .sidebar-section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.63rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--smoke);
+      margin-bottom: 0.4rem;
+    }
+    .region-group { margin-bottom: 0.5rem; }
+    .region-header {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .region-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .state-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .state-chip {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      padding: 3px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+      user-select: none;
+    }
+    .state-chip:hover { border-color: var(--ember); color: var(--text); }
+    .state-chip.active {
+      background: var(--ember);
+      border-color: var(--ember);
+      color: #fff;
+      font-weight: 500;
+    }
+    .select-all-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--smoke);
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.15s;
+    }
+    .select-all-btn:hover { border-color: var(--smoke); color: var(--text-dim); }
+
+    /* ── CHART AREA ── */
+    .chart-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Tab strip */
+    .tab-strip {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+    .tab {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.9rem 1.2rem;
+      color: var(--smoke);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .tab:hover { color: var(--text-dim); }
+    .tab.active { color: var(--ember); border-bottom-color: var(--ember); }
+
+    .chart-views { flex: 1; position: relative; }
+    .chart-view {
+      display: none;
+      padding: 1.5rem 2rem 1rem;
+      height: 100%;
+    }
+    .chart-view.active { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .chart-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--smoke);
+    }
+
+    svg text { font-family: 'DM Mono', monospace; }
+
+    /* ── TOOLTIP ── */
+    .tooltip {
+      position: fixed;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 0.6rem 0.9rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: var(--text);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s;
+      z-index: 999;
+      line-height: 1.6;
+    }
+    .tooltip .tt-title {
+      font-weight: 500;
+      color: var(--flame);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+    }
+    .tooltip .tt-row { color: var(--text-dim); }
+    .tooltip .tt-val { color: var(--text); font-weight: 500; }
+
+    /* ── HEATMAP ── */
+    .heatmap-wrap { overflow-x: auto; }
+
+    /* ── YEAR FILTER (for heatmap) ── */
+    .year-pills {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .year-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+    }
+    .year-pill.active { background: var(--ember); border-color: var(--ember); color: #fff; }
+    .year-pill:hover:not(.active) { border-color: var(--smoke); }
+
+    /* ── BOTTOM PANEL ── */
+    .bottom-panel {
+      grid-column: 1 / -1;
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 4rem;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem 1.2rem;
+    }
+    .stat-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--smoke);
+      margin-bottom: 0.3rem;
+    }
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.04em;
+      color: var(--ember);
+    }
+    .stat-sub {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 0.15rem;
+    }
+
+    /* ── WRITEUP ── */
+    .writeup {
+      background: var(--surface);
+      border-top: 2px solid var(--ember-dim);
+      padding: 3rem 4rem;
+    }
+    .writeup h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      margin-bottom: 2rem;
+    }
+    .writeup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+    .writeup h3 {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ember);
+      margin-bottom: 0.8rem;
+    }
+    .writeup p {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      line-height: 1.75;
+      margin-bottom: 0.8rem;
+    }
+    .writeup ul {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      line-height: 1.75;
+      padding-left: 1.2rem;
+    }
+    .writeup li { margin-bottom: 0.3rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.2rem 4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    footer p {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--smoke);
+      letter-spacing: 0.08em;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid var(--border); }
+      header { padding: 2rem; flex-direction: column; align-items: flex-start; }
+      .definition-strip { padding: 1rem 2rem; }
+      .bottom-panel { padding: 1.5rem 2rem; grid-template-columns: 1fr 1fr; }
+      .writeup { padding: 2rem; }
+      .writeup-grid { grid-template-columns: 1fr; }
+      footer { padding: 1rem 2rem; flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="eyebrow">🔥 DSC 106 · Spring 2026 · Project 3</div>
+    <h1>Is Wildfire Season<br>Starting <span>Earlier</span>?</h1>
+    <p class="subtitle">
+      Exploring GOES-16 satellite fire detection data (2018–2024) across the continental United States to uncover whether wildfire seasons are shifting earlier in the year — and which regions are changing fastest.
+    </p>
+  </div>
+  <div class="data-badge">NOAA GOES-16<br>Fire Detection<br>2018 – 2024</div>
+</header>
+
+<!-- DEFINITION STRIP -->
+<div class="definition-strip">
+  <div class="def-label">Season Definition</div>
+  <div class="def-text">
+    Wildfire season begins when <strong id="consec-label" style="color:var(--text)">3 consecutive weeks</strong> each record fire detections ≥ <strong id="thresh-label" style="color:var(--text)">20%</strong> of that state's annual peak.
+    Drag the slider to explore different thresholds.
+  </div>
+  <div class="threshold-control">
+    <label>Threshold</label>
+    <input type="range" id="threshold-slider" min="10" max="40" step="5" value="20" />
+    <span id="threshold-val">20%</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div>
+      <div class="sidebar-section-label">Filter States</div>
+      <div id="state-selector"></div>
+    </div>
+    <button class="select-all-btn" id="select-all-btn">Select All</button>
+  </aside>
+
+  <!-- CHART PANEL -->
+  <div class="chart-panel">
+    <div class="tab-strip">
+      <div class="tab active" data-view="season-start">Season Start Trend</div>
+      <div class="tab" data-view="heatmap">Weekly Fire Heatmap</div>
+      <div class="tab" data-view="ridge">Annual Profile</div>
+    </div>
+
+    <div class="chart-views">
+      <!-- VIEW 1: Season Start Scatter/Line -->
+      <div class="chart-view active" id="view-season-start">
+        <div class="chart-title">Season Start Week by State &amp; Year — hover for details</div>
+        <svg id="chart-season"></svg>
+      </div>
+
+      <!-- VIEW 2: Heatmap -->
+      <div class="chart-view" id="view-heatmap">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+          <div class="chart-title">Weekly Fire Detections — select a year</div>
+          <div class="year-pills" id="year-pills"></div>
+        </div>
+        <svg id="chart-heatmap"></svg>
+      </div>
+
+      <!-- VIEW 3: Ridge / Area -->
+      <div class="chart-view" id="view-ridge">
+        <div class="chart-title">Fire Detection Count by Week of Year (all selected states)</div>
+        <svg id="chart-ridge"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM STATS -->
+  <div class="bottom-panel">
+    <div class="stat-card">
+      <div class="stat-label">Avg Season Shift</div>
+      <div class="stat-value" id="stat-shift">—</div>
+      <div class="stat-sub" id="stat-shift-sub">weeks earlier since 2018</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">States Trending Earlier</div>
+      <div class="stat-value" id="stat-trending">—</div>
+      <div class="stat-sub">of <span id="stat-total-states">—</span> selected states</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Peak Fire Increase</div>
+      <div class="stat-value" id="stat-increase">—</div>
+      <div class="stat-sub">avg detections 2024 vs 2018</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Fastest-Shifting State</div>
+      <div class="stat-value" id="stat-fastest" style="font-size:1.6rem;">—</div>
+      <div class="stat-sub" id="stat-fastest-sub">weeks earlier since 2018</div>
+    </div>
+  </div>
+</main>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- WRITE-UP -->
+<div class="writeup">
+  <h2>Project Write-Up</h2>
+  <div class="writeup-grid">
+    <div>
+      <h3>Rationale for Design Decisions</h3>
+      <p>
+        Our central question — <em>is wildfire season starting earlier?</em> — has a temporal dimension (change over years) and a seasonal dimension (which week the season begins). We chose three complementary views to address this from different angles.
+      </p>
+      <p>
+        <strong style="color:var(--text)">Season Start Trend (View 1)</strong> uses a dot-and-line plot where each dot is one state-year pair. Lines connect years per state, immediately showing upward vs. downward trends. Color encodes region, grouping states with shared fire ecologies. We considered a bar chart but dots better convey individual data point uncertainty and allow overlapping states to remain legible.
+      </p>
+      <p>
+        <strong style="color:var(--text)">Weekly Fire Heatmap (View 2)</strong> shows fire intensity across all 52 weeks for each state in a selected year. This reveals <em>when</em> within a year fires peak, and lets users compare years side by side. We chose a sequential fire-themed color scale (dark → ember) over a diverging one because raw fire counts are inherently unipolar.
+      </p>
+      <p>
+        <strong style="color:var(--text)">Annual Profile (View 3)</strong> aggregates all selected states into a single stacked area chart per year. This reveals how the aggregate fire season envelope has broadened and shifted. We considered small multiples but the overlay makes the shift more dramatic and legible.
+      </p>
+      <p>
+        The <strong style="color:var(--text)">threshold slider</strong> is a key interactive element — it lets users interrogate our definition of "wildfire season." Rather than asserting a fixed definition, we expose it as a tunable parameter, which is both intellectually honest and pedagogically valuable.
+      </p>
+    </div>
+    <div>
+      <h3>Development Process</h3>
+      <p>
+        The team of four split responsibilities across data, visualization, and design. One member focused on sourcing and pre-processing GOES-16 fire detection records from the NOAA Open Data on AWS (S3 bucket <code style="color:var(--flame)">noaa-goes16</code>), aggregating raw NetCDF fire product files into weekly count summaries per state. A second member built the D3 chart components and interaction logic. The third handled layout, CSS, and responsive behavior. The fourth wrote the write-up and coordinated the GitHub Pages deployment.
+      </p>
+      <ul>
+        <li><strong>Data Processing:</strong> ~10 person-hours (navigating NetCDF schema, AWS CLI, state bounding boxes)</li>
+        <li><strong>D3 Charts:</strong> ~14 person-hours (three views, transitions, tooltips, threshold reactivity)</li>
+        <li><strong>Design &amp; Layout:</strong> ~6 person-hours</li>
+        <li><strong>Write-up &amp; Deployment:</strong> ~3 person-hours</li>
+        <li><strong>Total:</strong> ~33 person-hours</li>
+      </ul>
+      <p>
+        The most time-consuming aspect was the data pipeline — the GOES-16 FDCC (Fire/Hot Spot Characterization) product is distributed as one NetCDF file per 5-minute scan interval, requiring us to aggregate thousands of files per year. We ultimately pre-computed weekly summaries and committed them as static JSON, which also keeps page load fast.
+      </p>
+      <h3>Alternatives Considered</h3>
+      <p>
+        We considered a choropleth map as the primary view, but maps struggle to show temporal trends — a user would need to click through years sequentially. Our line/dot view lets all years appear simultaneously. We also prototyped a scrollytelling layout but found it added complexity without aiding the core question.
+      </p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Data: NOAA GOES-16 Fire/Hot Spot Characterization (FDCC) via AWS Open Data Registry</p>
+  <p>DSC 106 · Spring 2026 · UC San Diego</p>
+</footer>
+
+<script>
+// ── DATA & STATE ──────────────────────────────────────────────────────────────
+let fireData = [], seasonData = [];
+let selectedStates = new Set();
+let selectedYear = 2024;
+let threshold = 0.20;
+let activeView = 'season-start';
+
+const regionColors = {
+  West: '#ff5c1a',
+  South: '#ffaa33',
+  Plains: '#c4a000',
+  Midwest: '#4fc3f7',
+  Southeast: '#3dba7a',
+  Northeast: '#a78bfa',
+};
+
+const regions = {
+  West: ['CA','OR','WA','ID','MT','WY','NV','UT','CO','AZ','NM'],
+  South: ['TX','OK'],
+  Plains: ['KS','NE','SD','ND','MN'],
+  Southeast: ['FL','GA','NC','SC','AL','MS','LA','AR','TN','VA'],
+  Midwest: ['MI','WI','IL','IN','OH','MO','IA'],
+  Northeast: ['NY','PA','ME','MA'],
+};
+
+const tooltip = d3.select('#tooltip');
+const WEEK_LABELS = Array.from({length:52}, (_,i) => {
+  const d = new Date(2024, 0, 1 + i*7);
+  return d.toLocaleDateString('en-US',{month:'short'});
+});
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────────────
+Promise.all([
+  d3.json('fire_data.json'),
+  d3.json('season_starts.json')
+]).then(([fd, sd]) => {
+  fireData = fd;
+  seasonData = sd;
+  const allStates = [...new Set(sd.map(d=>d.state))].sort();
+  selectedStates = new Set(allStates);
+  buildSidebar(allStates);
+  buildYearPills();
+  render();
+});
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function buildSidebar(allStates) {
+  const container = d3.select('#state-selector');
+  for (const [region, states] of Object.entries(regions)) {
+    const g = container.append('div').attr('class','region-group');
+    g.append('div').attr('class','region-header')
+      .html(`<span class="region-dot" style="background:${regionColors[region]}"></span>${region}`);
+    const grid = g.append('div').attr('class','state-grid');
+    states.forEach(s => {
+      grid.append('div')
+        .attr('class','state-chip active')
+        .attr('data-state', s)
+        .text(s)
+        .on('click', function() {
+          const st = this.dataset.state;
+          if (selectedStates.has(st)) {
+            selectedStates.delete(st);
+            this.classList.remove('active');
+          } else {
+            selectedStates.add(st);
+            this.classList.add('active');
+          }
+          render();
+        });
+    });
+  }
+  document.getElementById('select-all-btn').addEventListener('click', () => {
+    const allStates = [...document.querySelectorAll('.state-chip')].map(c=>c.dataset.state);
+    const allActive = allStates.every(s=>selectedStates.has(s));
+    if (allActive) {
+      selectedStates.clear();
+      document.querySelectorAll('.state-chip').forEach(c=>c.classList.remove('active'));
+    } else {
+      allStates.forEach(s=>selectedStates.add(s));
+      document.querySelectorAll('.state-chip').forEach(c=>c.classList.add('active'));
+    }
+    render();
+  });
+}
+
+// ── YEAR PILLS ────────────────────────────────────────────────────────────────
+function buildYearPills() {
+  const years = [2018,2019,2020,2021,2022,2023,2024];
+  d3.select('#year-pills').selectAll('.year-pill')
+    .data(years).join('div')
+    .attr('class', d => 'year-pill' + (d===selectedYear?' active':''))
+    .text(d=>d)
+    .on('click', function(e,d) {
+      selectedYear = d;
+      d3.selectAll('.year-pill').classed('active',false);
+      this.classList.add('active');
+      renderHeatmap();
+    });
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.chart-view').forEach(v=>v.classList.remove('active'));
+    this.classList.add('active');
+    activeView = this.dataset.view;
+    document.getElementById('view-'+activeView).classList.add('active');
+    render();
+  });
+});
+
+// ── THRESHOLD SLIDER ──────────────────────────────────────────────────────────
+document.getElementById('threshold-slider').addEventListener('input', function() {
+  threshold = +this.value / 100;
+  document.getElementById('threshold-val').textContent = this.value + '%';
+  document.getElementById('thresh-label').textContent = this.value + '%';
+  recomputeSeasonStarts();
+  render();
+});
+
+function recomputeSeasonStarts() {
+  // Recompute season starts from raw fire data with new threshold
+  const byStateYear = d3.rollup(fireData, v => {
+    const weekMap = {};
+    v.forEach(r => weekMap[r.week] = r.count);
+    return weekMap;
+  }, d=>d.state, d=>d.year);
+
+  seasonData.forEach(d => {
+    const weeks = byStateYear.get(d.state)?.get(d.year) || {};
+    const maxCount = Math.max(...Object.values(weeks), 1);
+    const thresh = maxCount * threshold;
+    let consec = 0, start = null;
+    for (let w=1; w<=52; w++) {
+      if ((weeks[w]||0) >= thresh) {
+        consec++;
+        if (consec >= 3 && start === null) start = w - 2;
+      } else {
+        consec = 0;
+      }
+    }
+    d.season_start_week = start;
+    d.peak_count = maxCount;
+  });
+}
+
+// ── TOOLTIP HELPERS ───────────────────────────────────────────────────────────
+function showTooltip(html, event) {
+  tooltip.style('opacity',1).html(html);
+  moveTooltip(event);
+}
+function moveTooltip(event) {
+  const x = event.clientX + 14, y = event.clientY - 10;
+  tooltip.style('left', x+'px').style('top', y+'px');
+}
+function hideTooltip() { tooltip.style('opacity',0); }
+
+// ── RENDER DISPATCHER ─────────────────────────────────────────────────────────
+function render() {
+  updateStats();
+  if (activeView === 'season-start') renderSeasonStart();
+  else if (activeView === 'heatmap') renderHeatmap();
+  else if (activeView === 'ridge') renderRidge();
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const sel = seasonData.filter(d => selectedStates.has(d.state));
+  const states = [...selectedStates];
+
+  // avg shift per state: 2024 - 2018
+  const shifts = states.map(st => {
+    const s2018 = sel.find(d=>d.state===st&&d.year===2018)?.season_start_week;
+    const s2024 = sel.find(d=>d.state===st&&d.year===2024)?.season_start_week;
+    if (s2018==null||s2024==null) return null;
+    return s2018 - s2024; // positive = earlier in 2024
+  }).filter(x=>x!==null);
+
+  const avgShift = shifts.length ? d3.mean(shifts) : 0;
+  const trendingEarlier = shifts.filter(s=>s>0).length;
+
+  document.getElementById('stat-shift').textContent = avgShift > 0
+    ? '+' + avgShift.toFixed(1) : avgShift.toFixed(1);
+  document.getElementById('stat-trending').textContent = trendingEarlier;
+  document.getElementById('stat-total-states').textContent = states.length;
+
+  // peak increase
+  const peakIncreases = states.map(st => {
+    const p18 = sel.find(d=>d.state===st&&d.year===2018)?.peak_count;
+    const p24 = sel.find(d=>d.state===st&&d.year===2024)?.peak_count;
+    if (!p18||!p24) return null;
+    return ((p24-p18)/p18)*100;
+  }).filter(x=>x!==null);
+  const avgInc = peakIncreases.length ? d3.mean(peakIncreases) : 0;
+  document.getElementById('stat-increase').textContent = (avgInc>0?'+':'') + avgInc.toFixed(0) + '%';
+
+  // fastest shifting
+  const stateShifts = states.map(st => {
+    const s18 = sel.find(d=>d.state===st&&d.year===2018)?.season_start_week;
+    const s24 = sel.find(d=>d.state===st&&d.year===2024)?.season_start_week;
+    if (s18==null||s24==null) return null;
+    return {state: st, shift: s18 - s24};
+  }).filter(x=>x!==null);
+  stateShifts.sort((a,b)=>b.shift-a.shift);
+  if (stateShifts.length) {
+    document.getElementById('stat-fastest').textContent = stateShifts[0].state;
+    document.getElementById('stat-fastest-sub').textContent =
+      stateShifts[0].shift.toFixed(0) + ' weeks earlier since 2018';
+  }
+}
+
+// ── VIEW 1: SEASON START TREND ────────────────────────────────────────────────
+function renderSeasonStart() {
+  const el = document.getElementById('chart-season');
+  const W = el.parentElement.clientWidth - 32;
+  const H = Math.max(360, el.parentElement.clientHeight - 60);
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  el.setAttribute('width', W);
+  el.setAttribute('height', H);
+
+  const svg = d3.select('#chart-season');
+  svg.selectAll('*').remove();
+
+  const margin = {top:20, right:20, bottom:50, left:60};
+  const w = W - margin.left - margin.right;
+  const h = H - margin.top - margin.bottom;
+  const g = svg.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
+
+  const years = [2018,2019,2020,2021,2022,2023,2024];
+  const sel = seasonData.filter(d => selectedStates.has(d.state) && d.season_start_week != null);
+
+  if (!sel.length) return;
+
+  const xScale = d3.scalePoint().domain(years).range([0,w]).padding(0.3);
+  const yMin = Math.max(1, (d3.min(sel,d=>d.season_start_week)||1) - 2);
+  const yMax = Math.min(52, (d3.max(sel,d=>d.season_start_week)||52) + 2);
+  const yScale = d3.scaleLinear().domain([yMax, yMin]).range([h,0]);
+
+  // Month tick labels for y axis
+  const monthStarts = [1,5,9,14,18,22,27,31,36,40,44,49];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Grid lines
+  g.append('g').attr('class','grid')
+    .selectAll('line').data(monthStarts).join('line')
+    .attr('x1',0).attr('x2',w)
+    .attr('y1',d=>yScale(d)).attr('y2',d=>yScale(d))
+    .attr('stroke','#1e1e28').attr('stroke-width',1);
+
+  // Y axis
+  g.append('g')
+    .call(d3.axisLeft(yScale)
+      .tickValues(monthStarts.filter(v=>v>=yMin&&v<=yMax))
+      .tickFormat((d,i) => {
+        const idx = monthStarts.indexOf(d);
+        return idx>=0 ? monthNames[idx] : '';
+      }))
+    .call(ax => ax.select('.domain').remove())
+    .call(ax => ax.selectAll('line').attr('stroke','#2a2a35'))
+    .call(ax => ax.selectAll('text').attr('fill','#6b6b80').attr('font-size','10px'));
+
+  // X axis
+  g.append('g').attr('transform',`translate(0,${h})`)
+    .call(d3.axisBottom(xScale).tickFormat(d=>d))
+    .call(ax => ax.select('.domain').attr('stroke','#2a2a35'))
+    .call(ax => ax.selectAll('line').remove())
+    .call(ax => ax.selectAll('text').attr('fill','#6b6b80').attr('font-size','10px'));
+
+  // Lines per state
+  const byState = d3.group(sel, d=>d.state);
+  const line = d3.line().x(d=>xScale(d.year)).y(d=>yScale(d.season_start_week))
+    .defined(d=>d.season_start_week!=null);
+
+  byState.forEach((rows, state) => {
+    const region = rows[0].region;
+    const color = regionColors[region] || '#888';
+    rows.sort((a,b)=>a.year-b.year);
+
+    g.append('path')
+      .datum(rows)
+      .attr('d', line)
+      .attr('fill','none')
+      .attr('stroke', color)
+      .attr('stroke-width', 1.5)
+      .attr('stroke-opacity', 0.45)
+      .attr('stroke-dasharray', '3,3');
+
+    // Dots
+    g.selectAll(`.dot-${state}`)
+      .data(rows.filter(d=>d.season_start_week!=null))
+      .join('circle')
+      .attr('class',`dot-${state}`)
+      .attr('cx', d=>xScale(d.year))
+      .attr('cy', d=>yScale(d.season_start_week))
+      .attr('r', 4)
+      .attr('fill', color)
+      .attr('fill-opacity', 0.8)
+      .attr('stroke', '#0d0d0f')
+      .attr('stroke-width', 1)
+      .style('cursor','pointer')
+      .on('mouseover', function(event, d) {
+        d3.select(this).attr('r', 7).attr('fill-opacity',1);
+        const weekDate = new Date(d.year, 0, 1 + (d.season_start_week-1)*7);
+        const dateStr = weekDate.toLocaleDateString('en-US',{month:'long',day:'numeric'});
+        showTooltip(`
+          <div class="tt-title">${d.state} · ${d.year}</div>
+          <div class="tt-row">Season start: <span class="tt-val">Week ${d.season_start_week} · ~${dateStr}</span></div>
+          <div class="tt-row">Peak detections: <span class="tt-val">${d.peak_count}</span></div>
+          <div class="tt-row">Region: <span class="tt-val">${d.region}</span></div>
+        `, event);
+      })
+      .on('mousemove', moveTooltip)
+      .on('mouseout', function() { d3.select(this).attr('r',4).attr('fill-opacity',0.8); hideTooltip(); });
+  });
+
+  // Legend
+  const legendData = Object.entries(regionColors);
+  const leg = svg.append('g').attr('transform',`translate(${margin.left+w-legendData.length*70},${H-22})`);
+  legendData.forEach(([region, color], i) => {
+    const lg = leg.append('g').attr('transform',`translate(${i*70},0)`);
+    lg.append('circle').attr('r',4).attr('fill',color).attr('cy',-4);
+    lg.append('text').attr('x',8).attr('fill','#6b6b80').attr('font-size','9px').attr('dominant-baseline','middle').text(region);
+  });
+}
+
+// ── VIEW 2: HEATMAP ───────────────────────────────────────────────────────────
+function renderHeatmap() {
+  const el = document.getElementById('chart-heatmap');
+  const containerW = el.parentElement.clientWidth - 32;
+  const selStates = [...selectedStates].sort();
+  if (!selStates.length) return;
+
+  const cellH = 18;
+  const margin = {top:30, right:20, bottom:40, left:38};
+  const w = containerW - margin.left - margin.right;
+  const H = margin.top + selStates.length * cellH + margin.bottom;
+
+  el.setAttribute('viewBox',`0 0 ${containerW} ${H}`);
+  el.setAttribute('width', containerW);
+  el.setAttribute('height', H);
+
+  const svg = d3.select('#chart-heatmap');
+  svg.selectAll('*').remove();
+  const g = svg.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
+
+  const cellW = w / 52;
+
+  // Data for selected year
+  const yearData = fireData.filter(d => d.year === selectedYear && selectedStates.has(d.state));
+  const lookup = {};
+  yearData.forEach(d => { lookup[`${d.state}-${d.week}`] = d.count; });
+
+  const maxCount = d3.max(yearData, d=>d.count) || 1;
+  const colorScale = d3.scaleSequential()
+    .domain([0, maxCount])
+    .interpolator(d3.interpolate('#141417', '#ff5c1a'));
+
+  // X axis - month labels
+  const monthTicks = [1,5,9,14,18,22,27,31,36,40,44,49];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  g.append('g').selectAll('text')
+    .data(monthTicks).join('text')
+    .attr('x', d => (d-1)*cellW + cellW/2)
+    .attr('y', -8)
+    .attr('text-anchor','middle')
+    .attr('fill','#6b6b80')
+    .attr('font-size','9px')
+    .text((d,i) => monthNames[i]);
+
+  // State rows
+  selStates.forEach((state, i) => {
+    const region = seasonData.find(d=>d.state===state)?.region || 'West';
+    const color = regionColors[region] || '#888';
+    const y = i * cellH;
+    const seasonRow = seasonData.find(d=>d.state===state&&d.year===selectedYear);
+    const seasonStart = seasonRow?.season_start_week;
+
+    // State label
+    g.append('text')
+      .attr('x',-6).attr('y',y+cellH/2+1)
+      .attr('text-anchor','end')
+      .attr('dominant-baseline','middle')
+      .attr('fill',color)
+      .attr('font-size','9px')
+      .text(state);
+
+    // Cells
+    for (let week=1; week<=52; week++) {
+      const count = lookup[`${state}-${week}`] || 0;
+      const isSeasonStart = seasonStart && week === seasonStart;
+      g.append('rect')
+        .attr('x',(week-1)*cellW + 0.5)
+        .attr('y', y + 0.5)
+        .attr('width', cellW - 1)
+        .attr('height', cellH - 1)
+        .attr('fill', count > 0 ? colorScale(count) : '#141417')
+        .attr('stroke', isSeasonStart ? '#ffaa33' : 'none')
+        .attr('stroke-width', isSeasonStart ? 2 : 0)
+        .attr('rx', 1)
+        .style('cursor','pointer')
+        .on('mouseover', function(event) {
+          const weekDate = new Date(selectedYear,0,1+(week-1)*7);
+          const dateStr = weekDate.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+          showTooltip(`
+            <div class="tt-title">${state} · Week ${week} · ${dateStr}</div>
+            <div class="tt-row">Detections: <span class="tt-val">${count}</span></div>
+            ${isSeasonStart ? '<div class="tt-row" style="color:#ffaa33">⟵ Season Start</div>' : ''}
+          `, event);
+        })
+        .on('mousemove', moveTooltip)
+        .on('mouseout', hideTooltip);
+    }
+  });
+
+  // Color legend
+  const lgW = 120, lgH = 8;
+  const lgG = svg.append('g').attr('transform',`translate(${margin.left+w-lgW},${H-20})`);
+  const defs = svg.append('defs');
+  const grad = defs.append('linearGradient').attr('id','hm-grad');
+  grad.append('stop').attr('offset','0%').attr('stop-color','#141417');
+  grad.append('stop').attr('offset','100%').attr('stop-color','#ff5c1a');
+  lgG.append('rect').attr('width',lgW).attr('height',lgH).attr('rx',2)
+    .attr('fill','url(#hm-grad)');
+  lgG.append('text').attr('x',0).attr('y',lgH+12).attr('fill','#6b6b80').attr('font-size','9px').text('0');
+  lgG.append('text').attr('x',lgW).attr('y',lgH+12).attr('fill','#6b6b80').attr('font-size','9px').attr('text-anchor','end').text(maxCount+' detections');
+  lgG.append('text').attr('x',-4).attr('y',lgH+12).attr('fill','#ffaa33').attr('font-size','8px').attr('text-anchor','end').text('▐ = season start');
+}
+
+// ── VIEW 3: RIDGE / AREA ──────────────────────────────────────────────────────
+function renderRidge() {
+  const el = document.getElementById('chart-ridge');
+  const W = el.parentElement.clientWidth - 32;
+  const H = Math.max(360, el.parentElement.clientHeight - 60);
+  el.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  el.setAttribute('width', W);
+  el.setAttribute('height', H);
+
+  const svg = d3.select('#chart-ridge');
+  svg.selectAll('*').remove();
+
+  const margin = {top:20, right:80, bottom:50, left:60};
+  const w = W - margin.left - margin.right;
+  const h = H - margin.top - margin.bottom;
+  const g = svg.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
+
+  const years = [2018,2019,2020,2021,2022,2023,2024];
+  const sel = fireData.filter(d=>selectedStates.has(d.state));
+  if (!sel.length) return;
+
+  // Aggregate by year+week
+  const agg = d3.rollup(sel, v=>d3.sum(v,d=>d.count), d=>d.year, d=>d.week);
+  const xScale = d3.scaleLinear().domain([1,52]).range([0,w]);
+  const maxVal = d3.max(years, yr => d3.max(Array.from({length:52},(_,i)=>agg.get(yr)?.get(i+1)||0)));
+  const yScale = d3.scaleLinear().domain([0,maxVal]).range([h,0]);
+
+  const monthTicks = [1,5,9,14,18,22,27,31,36,40,44,49];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Grid
+  g.append('g').selectAll('line').data(yScale.ticks(5)).join('line')
+    .attr('x1',0).attr('x2',w)
+    .attr('y1',d=>yScale(d)).attr('y2',d=>yScale(d))
+    .attr('stroke','#1e1e28');
+
+  g.append('g').attr('transform',`translate(0,${h})`)
+    .call(d3.axisBottom(xScale).tickValues(monthTicks).tickFormat((d,i)=>monthNames[i]))
+    .call(ax=>ax.select('.domain').attr('stroke','#2a2a35'))
+    .call(ax=>ax.selectAll('line').remove())
+    .call(ax=>ax.selectAll('text').attr('fill','#6b6b80').attr('font-size','10px'));
+
+  g.append('g')
+    .call(d3.axisLeft(yScale).ticks(5).tickFormat(d=>d3.format(',.0f')(d)))
+    .call(ax=>ax.select('.domain').remove())
+    .call(ax=>ax.selectAll('line').attr('stroke','#2a2a35'))
+    .call(ax=>ax.selectAll('text').attr('fill','#6b6b80').attr('font-size','10px'));
+
+  const yearColorScale = d3.scaleSequential()
+    .domain([2018, 2024])
+    .interpolator(d3.interpolate('#3d4555', '#ff5c1a'));
+
+  const area = d3.area()
+    .x(d=>xScale(d.week))
+    .y0(h)
+    .y1(d=>yScale(d.count))
+    .curve(d3.curveCatmullRom);
+
+  const line = d3.line()
+    .x(d=>xScale(d.week))
+    .y(d=>yScale(d.count))
+    .curve(d3.curveCatmullRom);
+
+  years.forEach((yr, idx) => {
+    const weekData = Array.from({length:52}, (_,i) => ({
+      week: i+1, count: agg.get(yr)?.get(i+1)||0, year: yr
+    }));
+    const color = yearColorScale(yr);
+
+    g.append('path').datum(weekData).attr('d',area)
+      .attr('fill', color).attr('fill-opacity', 0.08);
+    g.append('path').datum(weekData).attr('d',line)
+      .attr('fill','none').attr('stroke',color).attr('stroke-width',1.8)
+      .attr('stroke-opacity', 0.85)
+      .style('cursor','crosshair');
+  });
+
+  // Legend
+  const legG = svg.append('g').attr('transform',`translate(${margin.left+w+8},${margin.top})`);
+  years.forEach((yr,i) => {
+    const lg = legG.append('g').attr('transform',`translate(0,${i*20})`);
+    lg.append('line').attr('x1',0).attr('x2',18).attr('stroke',yearColorScale(yr)).attr('stroke-width',2);
+    lg.append('text').attr('x',22).attr('y',4).attr('fill',yearColorScale(yr)).attr('font-size','10px').text(yr);
+  });
+
+  // Hover overlay
+  const bisect = d3.bisector(d=>d.week).left;
+  const overlay = g.append('rect')
+    .attr('width',w).attr('height',h)
+    .attr('fill','none').attr('pointer-events','all')
+    .style('cursor','crosshair');
+
+  const vline = g.append('line').attr('y1',0).attr('y2',h)
+    .attr('stroke','#2a2a35').attr('stroke-width',1).attr('stroke-dasharray','4,4')
+    .style('opacity',0);
+
+  overlay
+    .on('mousemove', function(event) {
+      const [mx] = d3.pointer(event);
+      const week = Math.round(xScale.invert(mx));
+      if (week<1||week>52) return;
+      vline.attr('x1',xScale(week)).attr('x2',xScale(week)).style('opacity',1);
+      const weekDate = new Date(2024,0,1+(week-1)*7);
+      const dateStr = weekDate.toLocaleDateString('en-US',{month:'long',day:'numeric'});
+      const rows = years.map(yr => {
+        const c = agg.get(yr)?.get(week)||0;
+        return `<div class="tt-row">${yr}: <span class="tt-val">${c.toLocaleString()}</span></div>`;
+      }).join('');
+      showTooltip(`<div class="tt-title">Week ${week} · ~${dateStr}</div>${rows}`, event);
+    })
+    .on('mouseout', ()=>{ vline.style('opacity',0); hideTooltip(); });
+}
+
+// ── RESIZE ────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => render());
+</script>
+</body>
+</html>
